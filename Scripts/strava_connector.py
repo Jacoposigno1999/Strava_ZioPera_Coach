@@ -158,6 +158,8 @@ def insert_one_activity(conn, act):
         # Note: 'act.type' is often an object, we want the string key
         act_type = str(act.type) 
         
+        description = str(act.description)
+        
 
         # Distances/elevation/speeds might be Quantities like "1000 m"
         
@@ -186,7 +188,7 @@ def insert_one_activity(conn, act):
         max_hr = getattr(act, "max_heartrate", None)
 
         data = (
-            act.id, act.name, start_date, act_type, 
+            act.id, act.name, description, start_date, act_type, 
             dist, mov_time, ela_time, elev, 
             avg_spd, max_spd, avg_hr, max_hr
         )
@@ -195,10 +197,10 @@ def insert_one_activity(conn, act):
         with conn.cursor() as cur:
             cur.execute("""
                 INSERT INTO activities (
-                    strava_id, name, start_date_local, type, distance_m,
+                    strava_id, name, activity_description, start_date_local, type, distance_m,
                     moving_time_s, elapsed_time_s, elevation_gain_m,
                     average_speed_mps, max_speed_mps, average_heartrate, max_heartrate
-                ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                ) VALUES (%s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
                 ON CONFLICT (strava_id) DO UPDATE SET
                     name = EXCLUDED.name,
                     distance_m = EXCLUDED.distance_m;
@@ -229,7 +231,7 @@ if __name__ == "__main__":
         print(f"👋 Athlete: {me.firstname} {me.lastname} — id={me.id}")
 
         # 2) Show 5 most recent activities (friendly summary from stravalib objects)
-        acts = list(client.get_activities(limit=5))
+        acts = list(client.get_activities(limit=50))
 
         # 3) Raw JSON (exact API format) for the most recent activity
         if acts:
