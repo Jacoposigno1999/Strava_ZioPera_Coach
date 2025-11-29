@@ -132,6 +132,7 @@ def create_activities_table(conn):
             CREATE TABLE IF NOT EXISTS activities (
                 strava_id BIGINT PRIMARY KEY,
                 name VARCHAR(255),
+                activity_description TEXT,
                 start_date_local TIMESTAMP,
                 type VARCHAR(50),
                 distance_m REAL,
@@ -158,7 +159,7 @@ def insert_one_activity(conn, act):
         # Note: 'act.type' is often an object, we want the string key
         act_type = str(act.type) 
         
-        description = str(act.description)
+        description = str(act.description) if getattr(act, "description", None) else "No description"
         
 
         # Distances/elevation/speeds might be Quantities like "1000 m"
@@ -237,8 +238,8 @@ if __name__ == "__main__":
         if acts:
             first_id = acts[0].id
             detail_json, _ = raw_get(f"/activities/{first_id}", params={"include_all_efforts": "true"})
-            print("\n🧪 Raw JSON for the latest activity (first 1):")
-            print(json.dumps(detail_json, indent=2)[:4000])  # avoid flooding the console
+            #print("\n🧪 Raw JSON for the latest activity (first 1):")
+            #print(json.dumps(detail_json, indent=2)[:4000])  # avoid flooding the console
         
         conn = get_db_connection()
         create_activities_table(conn)
