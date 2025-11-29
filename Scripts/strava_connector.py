@@ -128,21 +128,44 @@ def get_db_connection():
 def create_activities_table(conn):
     """Creates the table if it does not exist."""
     with conn.cursor() as cur:
-        cur.execute("""
+        cur.execute(    """
             CREATE TABLE IF NOT EXISTS activities (
                 strava_id BIGINT PRIMARY KEY,
+
+                -- 📌 1. Informazioni generali
                 name VARCHAR(255),
                 activity_description TEXT,
-                start_date_local TIMESTAMP,
                 type VARCHAR(50),
+                sport_type VARCHAR(50),
+                workout_type INTEGER,
+                timezone VARCHAR(100),
+                start_date_local TIMESTAMP,
+
+                -- 📌 2. Durate e distanze
                 distance_m REAL,
                 moving_time_s INTEGER,
                 elapsed_time_s INTEGER,
                 elevation_gain_m REAL,
+                elev_high_m REAL,
+                elev_low_m REAL,
+
+                -- 📌 4. Velocità, potenza, cadenza
                 average_speed_mps REAL,
                 max_speed_mps REAL,
+                average_cadence REAL,
+
+                -- 📌 5. Frequenza cardiaca
+                has_heartrate BOOLEAN,
                 average_heartrate REAL,
-                max_heartrate REAL
+                max_heartrate REAL,
+                heartrate_opt_out BOOLEAN,
+                display_hide_heartrate_option BOOLEAN,
+
+                -- 📌 6. Calorie & Parametri fisiologici
+                calories REAL,
+                average_temp REAL,
+                max_temperature REAL,
+                suffer_score REAL
             );
         """)
     conn.commit()
@@ -155,25 +178,34 @@ def insert_one_activity(conn, act):
     Commits immediately for granular control.
     """
     try:
-        # 1. Extract Data safely (handling None or Units)
-        # Note: 'act.type' is often an object, we want the string key
-        act_type = str(act.type) 
-        
-        description = str(act.description) if getattr(act, "description", None) else "No description"
-        
+        # ---------- 1) Informazioni generali ----------
+        act_type = str(act.type) if getattr(act, "type", None) else None
+        sport_type = str(act.sport_type) if getattr(act, "sport_type", None) else None
+        workout_type = getattr(act, "workout_type", None)
+        timezone = getattr(act, "timezone", None)
 
-        # Distances/elevation/speeds might be Quantities like "1000 m"
-        
-        dist = act.distance if getattr(act, "distance", None) else 0.0 
-        elev = (
-            act.total_elevation_gain
+        description = (
+            str(act.description) if getattr(act, "description", None) else "No description"
+        )
+
+        # start_date_local senza timezone (per TIMESTAMP "naive" in Postgres)
+        if getattr(act, "start_date_local", None):
+            start_date = act.start_date_local.replace(tzinfo=None)
+        else:
+            start_date = None
+
+        # ---------- 2) Durate e distanze ----------
+        # stravalib spesso usa oggetti Quantity; cast a float in metri
+        dist = float(act.distance) if getattr(act, "distance", None) else 0.0
+        elev_gain = (
+            float(act.total_elevation_gain)
             if getattr(act, "total_elevation_gain", None)
             else 0.0
         )
-        avg_spd = act.average_speed if getattr(act, "average_speed", None) else 0.0
-        max_spd = act.max_speed if getattr(act, "max_speed", None) else 0.0
+        elev_high = float(act.elev_high) if getattr(act, "elev_high", None) else None
+        elev_low = float(act.elev_low) if getattr(act, "elev_low", None) else None
 
-        # Timedeltas
+        # moving_time / elapsed_time sono timedelta → convertiamo in secondi
         mov_time = (
             act.moving_time if getattr(act, "moving_time", None) else 0
         )
@@ -181,31 +213,131 @@ def insert_one_activity(conn, act):
             act.elapsed_time if getattr(act, "elapsed_time", None) else 0
         )
 
-        # Dates (strip timezone for simple Postgres TIMESTAMP)
-        start_date = act.start_date_local.replace(tzinfo=None)
+        # ---------- 4) Velocità, potenza, cadenza ----------
+        avg_spd = (
+            float(act.average_speed)
+            if getattr(act, "average_speed", None)
+            else None
+        )
+        max_spd = float(act.max_speed) if getattr(act, "max_speed", None) else None
+        avg_cad = (
+            float(act.average_cadence)
+            if getattr(act, "average_cadence", None)
+            else None
+        )
 
-        # Heart rate (may be missing)
+        # ---------- 5) Frequenza cardiaca ----------
+        has_hr = getattr(act, "has_heartrate", None)
         avg_hr = getattr(act, "average_heartrate", None)
         max_hr = getattr(act, "max_heartrate", None)
+        hr_opt_out = getattr(act, "heartrate_opt_out", None)
+        hide_hr_opt = getattr(act, "display_hide_heartrate_option", None)
+
+        # ---------- 6) Calorie & Parametri fisiologici ----------
+        calories = getattr(act, "calories", None)
+        avg_temp = getattr(act, "average_temp", None)
+        max_temp = getattr(act, "max_temperature", None)
+        suffer_score = getattr(act, "suffer_score", None)
 
         data = (
-            act.id, act.name, description, start_date, act_type, 
-            dist, mov_time, ela_time, elev, 
-            avg_spd, max_spd, avg_hr, max_hr
+            act.id,           # strava_id
+            act.name,         # name
+            description,      # activity_description
+            act_type,         # type
+            sport_type,       # sport_type
+            workout_type,     # workout_type
+            timezone,         # timezone
+            start_date,       # start_date_local
+
+            dist,             # distance_m
+            mov_time,         # moving_time_s
+            ela_time,         # elapsed_time_s
+            elev_gain,        # elevation_gain_m
+            elev_high,        # elev_high_m
+            elev_low,         # elev_low_m
+
+            avg_spd,          # average_speed_mps
+            max_spd,          # max_speed_mps
+            avg_cad,          # average_cadence
+
+            has_hr,           # has_heartrate
+            avg_hr,           # average_heartrate
+            max_hr,           # max_heartrate
+            hr_opt_out,       # heartrate_opt_out
+            hide_hr_opt,      # display_hide_heartrate_option
+
+            calories,         # calories
+            avg_temp,         # average_temp
+            max_temp,         # max_temperature
+            suffer_score      # suffer_score
         )
 
         # 2. Insert
         with conn.cursor() as cur:
-            cur.execute("""
+            cur.execute(
+                """
                 INSERT INTO activities (
-                    strava_id, name, activity_description, start_date_local, type, distance_m,
-                    moving_time_s, elapsed_time_s, elevation_gain_m,
-                    average_speed_mps, max_speed_mps, average_heartrate, max_heartrate
-                ) VALUES (%s, %s,  %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                    strava_id,
+                    name,
+                    activity_description,
+                    type,
+                    sport_type,
+                    workout_type,
+                    timezone,
+                    start_date_local,
+                    distance_m,
+                    moving_time_s,
+                    elapsed_time_s,
+                    elevation_gain_m,
+                    elev_high_m,
+                    elev_low_m,
+                    average_speed_mps,
+                    max_speed_mps,
+                    average_cadence,
+                    has_heartrate,
+                    average_heartrate,
+                    max_heartrate,
+                    heartrate_opt_out,
+                    display_hide_heartrate_option,
+                    calories,
+                    average_temp,
+                    max_temperature,
+                    suffer_score
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s,
+                    %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s
+                )
                 ON CONFLICT (strava_id) DO UPDATE SET
-                    name = EXCLUDED.name,
-                    distance_m = EXCLUDED.distance_m;
-            """, data)
+                    name                         = EXCLUDED.name,
+                    activity_description          = EXCLUDED.activity_description,
+                    type                          = EXCLUDED.type,
+                    sport_type                    = EXCLUDED.sport_type,
+                    workout_type                  = EXCLUDED.workout_type,
+                    timezone                      = EXCLUDED.timezone,
+                    start_date_local              = EXCLUDED.start_date_local,
+                    distance_m                    = EXCLUDED.distance_m,
+                    moving_time_s                 = EXCLUDED.moving_time_s,
+                    elapsed_time_s                = EXCLUDED.elapsed_time_s,
+                    elevation_gain_m              = EXCLUDED.elevation_gain_m,
+                    elev_high_m                   = EXCLUDED.elev_high_m,
+                    elev_low_m                    = EXCLUDED.elev_low_m,
+                    average_speed_mps             = EXCLUDED.average_speed_mps,
+                    max_speed_mps                 = EXCLUDED.max_speed_mps,
+                    average_cadence               = EXCLUDED.average_cadence,
+                    has_heartrate                 = EXCLUDED.has_heartrate,
+                    average_heartrate             = EXCLUDED.average_heartrate,
+                    max_heartrate                 = EXCLUDED.max_heartrate,
+                    heartrate_opt_out             = EXCLUDED.heartrate_opt_out,
+                    display_hide_heartrate_option = EXCLUDED.display_hide_heartrate_option,
+                    calories                      = EXCLUDED.calories,
+                    average_temp                  = EXCLUDED.average_temp,
+                    max_temperature               = EXCLUDED.max_temperature,
+                    suffer_score                  = EXCLUDED.suffer_score;
+                """,
+                data,)
             # Note: I added "ON CONFLICT DO UPDATE" so if you re-run it, 
             # it updates the name/distance if they changed, rather than crashing.
 
