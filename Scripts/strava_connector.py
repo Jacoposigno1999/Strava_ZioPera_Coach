@@ -370,6 +370,9 @@ if __name__ == "__main__":
         if acts:
             first_id = acts[0].id
             detail_json, _ = raw_get(f"/activities/{first_id}", params={"include_all_efforts": "true"})
+            import json 
+            with open('detail_json.json', "w") as f:
+                json.dump(detail_json, f)
             #print("\n🧪 Raw JSON for the latest activity (first 1):")
             #print(json.dumps(detail_json, indent=2)[:4000])  # avoid flooding the console
         
