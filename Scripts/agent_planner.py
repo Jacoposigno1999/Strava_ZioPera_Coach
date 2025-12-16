@@ -5,16 +5,28 @@ from datapizza.clients.openai_like import OpenAILikeClient
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Scripts.tools.runner_tools import get_runner_stats, save_training_plan
+from datapizza.clients.google import GoogleClient
 
+
+
+api_key = os.getenv("GEMINI_API_KEY")
 
 
 #TODO: Replace llama with GEMINI free
+client = GoogleClient(
+    api_key= api_key,
+    model = "gemini-flash-latest",
+    system_prompt="You are an helpful assitant"
+)
+
+'''
 client = OpenAILikeClient(
     api_key= "",
     model = "llama3.1:8b",
     system_prompt="You are an helpful assitant",
     base_url="http://localhost:11434/v1"
 )
+'''
 
 # 2. Define the "System Prompt" (The Personality & Rules)
 SYS_PROMPT = """
@@ -30,6 +42,7 @@ Your only purpose is to trigger tools based on user requests.
 - **DO NOT** write Python code.
 - **DO NOT** write explanations.
 - **ONLY** output the tool calls.
+- **EXCEPTION:** If you have successfully saved the plan and received the success message, you **MUST** output a final text confirmation to the user (e.g., "Plan created successfully").
 
 ### EXAMPLE OF SUCCESS (Mimic This!)
 User: "Create a plan for user_123."
