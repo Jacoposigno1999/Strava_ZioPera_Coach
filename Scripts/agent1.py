@@ -7,7 +7,11 @@ sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 from Scripts.tools.runner_tools import get_runner_stats, save_training_plan
 from datapizza.clients.google import GoogleClient
 
-
+# =================
+# The scope of this script is to define and run an agent that:
+# 1. Fetches real runner stats from Postgres.
+# 2. Generates a personalized training plan.    
+# =================
 
 api_key = os.getenv("GEMINI_API_KEY")
 
@@ -85,3 +89,4 @@ if __name__ == "__main__":
     user_input = "Create a plan to run 10km in 45 minutes. The run will be 10/03/2026."
     
     run_planner_pipeline(user_input, user_id="user_123")
+    #per ora user_id non ha alcun valore, in quanto nel DB ci sono solo miei dati 
