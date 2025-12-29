@@ -4,7 +4,7 @@ from datapizza.clients.openai import OpenAIClient # Or Azure, Anthropic
 from datapizza.clients.openai_like import OpenAILikeClient
 import sys
 sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Scripts.tools.runner_tools import get_runner_stats, save_training_plan
+from Scripts.tools.agent1_tools import get_runner_stats, save_training_plan
 from datapizza.clients.google import GoogleClient
 
 # =================
@@ -16,7 +16,7 @@ from datapizza.clients.google import GoogleClient
 api_key = os.getenv("GEMINI_API_KEY")
 
 
-#TODO: Replace llama with GEMINI free
+
 client = GoogleClient(
     api_key= api_key,
     model = "gemini-flash-latest",

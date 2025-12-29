@@ -8,6 +8,8 @@ load_dotenv()
 import json 
 # In a real app, you would import your DB repository here
 
+
+# TODO: Move DB connection logic to a shared utils file
 def get_db_connection():
     """Establishes connection to the Postgres DB."""
     return psycopg2.connect(
