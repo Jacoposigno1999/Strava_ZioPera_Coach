@@ -13,3 +13,6 @@ Reports/
 *.json
 
 .env
+
+#API keys
+api_keys.py
