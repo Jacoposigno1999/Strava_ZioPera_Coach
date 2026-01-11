@@ -1,24 +1,15 @@
 from datapizza.tools import tool
-from Scripts.domain.models import UserStats, TrainingPlan
-import psycopg2
-from psycopg2.extras import RealDictCursor
 from dotenv import load_dotenv
 import os 
-load_dotenv()
 import json 
+
+from app.domain.models import UserStats
+from app.utils.database import get_db_connection
 # In a real app, you would import your DB repository here
 
+load_dotenv()
 
-# TODO: Move DB connection logic to a shared utils file
-def get_db_connection():
-    """Establishes connection to the Postgres DB."""
-    return psycopg2.connect(
-        database=os.getenv("POSTGRES_DB"),
-        user=os.getenv("POSTGRES_USER"),
-        password=os.getenv("POSTGRES_PASSWORD"),
-        host=os.getenv("POSTGRES_HOST"),
-        port=os.getenv("POSTGRES_PORT")
-    )
+
 
 @tool
 def get_runner_stats(user_id: str) -> str:

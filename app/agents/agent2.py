@@ -2,18 +2,17 @@ import os
 from datapizza.agents import Agent
 from datapizza.clients.openai import OpenAIClient # Or Azure, Anthropic
 from datapizza.clients.openai_like import OpenAILikeClient
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Scripts.tools.agent2_tools import compare_plan_vs_actual, update_training_plan
 from datapizza.clients.google import GoogleClient
-api_key = os.getenv("GEMINI_API_KEY")
+import sys
 
+from app.tools.agent2_tools import compare_plan_vs_actual, update_training_plan
+from app.config import Config
 
 
 client = GoogleClient(
-    api_key= api_key,
-    model = "gemini-flash-latest",
-    system_prompt="You are an helpful assitant"
+    api_key= Config.GEMINI_API_KEY,
+    model = Config.MODEL_NAME,
+    system_prompt="You are an expert running coach managing an athlete's progress."
 )
 
 
@@ -53,7 +52,7 @@ if __name__ == "__main__":
     # Simulate a daily check
     # Imagine User 123 missed their run yesterday (2025-01-01)
     
-    date_to_check = "2026-01-02" 
+    date_to_check = "2026-01-01" 
     
     print(f"🕵️ Coach checking status for {date_to_check}...")
     

@@ -2,27 +2,26 @@ import os
 from datapizza.agents import Agent
 from datapizza.clients.openai import OpenAIClient # Or Azure, Anthropic
 from datapizza.clients.openai_like import OpenAILikeClient
-import sys
-sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
-from Scripts.tools.agent1_tools import get_runner_stats, save_training_plan
 from datapizza.clients.google import GoogleClient
+import sys
 
+from app.tools.agent1_tools import get_runner_stats, save_training_plan
+from app.config import Config
 # =================
 # The scope of this script is to define and run an agent that:
 # 1. Fetches real runner stats from Postgres.
 # 2. Generates a personalized training plan.    
 # =================
 
-api_key = os.getenv("GEMINI_API_KEY")
-
-
 
 client = GoogleClient(
-    api_key= api_key,
-    model = "gemini-flash-latest",
-    system_prompt="You are an helpful assitant"
+    api_key= Config.GEMINI_API_KEY,
+    model = Config.MODEL_NAME,
+    system_prompt="You are an running expert plan architect"
 )
 
+
+# Alternative Local LLM Client (for testing without API calls)
 '''
 client = OpenAILikeClient(
     api_key= "",
